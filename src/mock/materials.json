@@ -1,0 +1,6 @@
+[
+  { "name": "سنگ آهن", "percent": 42, "color": "#22c55e", "colorClass": "bg-green-500" },
+  { "name": "زغال سنگ", "percent": 28, "color": "#3b82f6", "colorClass": "bg-blue-500" },
+  { "name": "گندله آهن", "percent": 18, "color": "#f59e0b", "colorClass": "bg-amber-500" },
+  { "name": "سنگ آهک", "percent": 12, "color": "#a855f7", "colorClass": "bg-purple-500" }
+]

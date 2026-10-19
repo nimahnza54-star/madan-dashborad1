@@ -1,0 +1,8 @@
+[
+  { "value": 92, "percent": 92, "color": "#0f9f8f", "vehicle": "TR-08" },
+  { "value": 80, "percent": 80, "color": "#0f9f8f", "vehicle": "TR-12" },
+  { "value": 72, "percent": 72, "color": "#14b8a6", "vehicle": "TR-03" },
+  { "value": 60, "percent": 60, "color": "#3b82f6", "vehicle": "TR-15" },
+  { "value": 40, "percent": 40, "color": "#3b82f6", "vehicle": "TR-02" },
+  { "value": 36, "percent": 36, "color": "#3b82f6", "vehicle": "TR-11" }
+]

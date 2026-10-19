@@ -1,0 +1,6 @@
+{
+  "capacityUtilization": { "value": "86%", "trend": "1/34", "trendLabel": "نسبت به دوره قبل" },
+  "avgWeightPerService": { "value": "9/98", "unit": "تن", "trend": "افزایش 2/11", "trendLabel": "نسبت به دوره قبل" },
+  "totalServices": { "value": "1286", "unit": "سرویس", "trend": "افزایش 5/24", "trendLabel": "نسبت به دوره قبل" },
+  "totalWeightTransported": { "value": "12840", "unit": "تن", "trend": "افزایش 8/24", "trendLabel": "نسبت به دوره قبل" }
+}

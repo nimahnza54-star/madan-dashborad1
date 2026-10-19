@@ -1,0 +1,79 @@
+{
+  "statistics": {
+    "capacityUtilization": { "value": "86%", "trend": "1/34", "trendLabel": "نسبت به دوره قبل" },
+    "avgWeightPerService": { "value": "9/98", "unit": "تن", "trend": "افزایش 2/11", "trendLabel": "نسبت به دوره قبل" },
+    "totalServices": { "value": "1286", "unit": "سرویس", "trend": "افزایش 5/24", "trendLabel": "نسبت به دوره قبل" },
+    "totalWeightTransported": { "value": "12840", "unit": "تن", "trend": "افزایش 8/24", "trendLabel": "نسبت به دوره قبل" }
+  },
+  "materials": [
+    { "name": "سنگ آهن", "percent": 42, "color": "#22c55e", "colorClass": "bg-green-500" },
+    { "name": "زغال سنگ", "percent": 28, "color": "#3b82f6", "colorClass": "bg-blue-500" },
+    { "name": "گندله آهن", "percent": 18, "color": "#f59e0b", "colorClass": "bg-amber-500" },
+    { "name": "سنگ آهک", "percent": 12, "color": "#a855f7", "colorClass": "bg-purple-500" }
+  ],
+  "lineChart": {
+    "dates": ["1 مهر", "2 مهر", "3 مهر", "4 مهر", "5 مهر", "6 مهر", "7 مهر"],
+    "weights": [1800, 2400, 1900, 1300, 2400, 1900, 2800, 2000, 3000, 2100, 3000, 3200, 2900, 3200]
+  },
+  "progressBars": [
+    { "value": 92, "percent": 92, "color": "#0f9f8f", "vehicle": "TR-08" },
+    { "value": 80, "percent": 80, "color": "#0f9f8f", "vehicle": "TR-12" },
+    { "value": 72, "percent": 72, "color": "#14b8a6", "vehicle": "TR-03" },
+    { "value": 60, "percent": 60, "color": "#3b82f6", "vehicle": "TR-15" },
+    { "value": 40, "percent": 40, "color": "#3b82f6", "vehicle": "TR-02" },
+    { "value": 36, "percent": 36, "color": "#3b82f6", "vehicle": "TR-11" }
+  ],
+  "capacityBars": [
+    { "label": "ناوگان", "percent": 86, "color": "#a855f7" },
+    { "label": "TR-03", "percent": 78, "color": "#f59e0b" },
+    { "label": "TR-12", "percent": 86, "color": "#3b82f6" },
+    { "label": "TR-06", "percent": 92, "color": "#0f9f8f" }
+  ],
+  "heatmap": {
+    "timeHeaders": ["00-03", "03-06", "06-09", "09-12", "12-15", "15-18", "18-21", "21-24"],
+    "days": ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "جمعه"],
+    "data": [
+      ["W", "W", "X", "Y", "Z", "Y", "X", "W"],
+      ["W", "X", "Y", "Z", "Z", "Y", "X", "W"],
+      ["W", "X", "Y", "Z", "Y", "Y", "X", "W"],
+      ["W", "W", "X", "Y", "Z", "Z", "Y", "X"],
+      ["W", "W", "X", "Y", "Z", "Y", "X", "W"],
+      ["W", "W", "X", "X", "Y", "Y", "X", "W"],
+      ["W", "W", "X", "Y", "Z", "Y", "X", "W"]
+    ],
+    "colors": {
+      "light": {
+        "W": "#dcfce7",
+        "X": "#86efac",
+        "Y": "#14b8a6",
+        "Z": "#166534"
+      },
+      "dark": {
+        "W": "#14532d",
+        "X": "#166534",
+        "Y": "#15803d",
+        "Z": "#166534"
+      }
+    }
+  },
+  "stackedBar": {
+    "days": ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "جمعه"],
+    "datasets": [
+      {
+        "label": "زغال سنگ",
+        "data": [100, 100, 70, 80, 60, 90, 80],
+        "backgroundColor": "#0f9f8f"
+      },
+      {
+        "label": "سنگ آهن",
+        "data": [60, 25, 40, 45, 60, 50, 60],
+        "backgroundColor": "#3b82f6"
+      },
+      {
+        "label": "سنگ آهک",
+        "data": [40, 25, 40, 45, 30, 40, 30],
+        "backgroundColor": "#f59e0b"
+      }
+    ]
+  }
+}

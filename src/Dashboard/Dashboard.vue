@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   Menu,
   Circle,
@@ -23,32 +23,38 @@ import {
   type ChartOptions
 } from 'chart.js'
 import { useTheme } from '@/composables/useTheme'
+import api, {
+  type Material,
+  type Statistics,
+  type LineChartData,
+  type ProgressBar,
+  type CapacityBar,
+  type HeatmapData,
+  type StackedBarData
+} from '@/services/api'
 
 ChartJS.register(ArcElement, Tooltip, LineElement, PointElement, LinearScale, CategoryScale, BarElement)
 
 const { theme, toggleTheme, isDark } = useTheme()
 
-interface Material {
-  name: string
-  percent: number
-  color: string
-  colorClass: string
-}
+const materials = ref<Material[]>([])
+const statistics = ref<Statistics | null>(null)
+const lineChart = ref<LineChartData | null>(null)
+const progressBars = ref<ProgressBar[]>([])
+const capacityBars = ref<CapacityBar[]>([])
+const heatmap = ref<HeatmapData | null>(null)
+const stackedBar = ref<StackedBarData | null>(null)
 
-const materials: Material[] = [
-  { name: 'سنگ آهن', percent: 42, color: '#22c55e', colorClass: 'bg-green-500' },
-  { name: 'زغال سنگ', percent: 28, color: '#3b82f6', colorClass: 'bg-blue-500' },
-  { name: 'گندله آهن', percent: 18, color: '#f59e0b', colorClass: 'bg-amber-500' },
-  { name: 'سنگ آهک', percent: 12, color: '#a855f7', colorClass: 'bg-purple-500' }
-]
+const loading = ref(true)
+const error = ref<string | null>(null)
 
-// 42% of the total equals 12.8 thousand tons => total ≈ 30.476190 thousand tons
-const TOTAL_THOUSAND_TONS = 12.8 / 0.42
 const SELECTION_DURATION_MS = 8000
 const SELECTED_SLICE_OFFSET = 34
 
 const selectedIndex = ref<number | null>(null)
 let selectionTimer: ReturnType<typeof setTimeout> | null = null
+
+const TOTAL_THOUSAND_TONS = 12.8 / 0.42
 
 function formatTons(percent: number): string {
   return (TOTAL_THOUSAND_TONS * (percent / 100)).toFixed(2)
@@ -75,16 +81,54 @@ function clearSelection(): void {
 
 onBeforeUnmount(clearSelection)
 
+async function fetchDashboardData(): Promise<void> {
+  loading.value = true
+  error.value = null
+  try {
+    const [
+      materialsRes,
+      statisticsRes,
+      lineChartRes,
+      progressBarsRes,
+      capacityBarsRes,
+      heatmapRes,
+      stackedBarRes
+    ] = await Promise.all([
+      api.getMaterials(),
+      api.getStatistics(),
+      api.getLineChart(),
+      api.getProgressBars(),
+      api.getCapacityBars(),
+      api.getHeatmap(),
+      api.getStackedBar()
+    ])
+    materials.value = materialsRes
+    statistics.value = statisticsRes
+    lineChart.value = lineChartRes
+    progressBars.value = progressBarsRes
+    capacityBars.value = capacityBarsRes
+    heatmap.value = heatmapRes
+    stackedBar.value = stackedBarRes
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load dashboard data'
+    console.error('Dashboard data fetch error:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchDashboardData)
+
 const chartData = computed<ChartData<'doughnut'>>(() => ({
-  labels: materials.map((material) => material.name),
+  labels: materials.value.map((material) => material.name),
   datasets: [
     {
-      data: materials.map((material) => material.percent),
-      backgroundColor: materials.map((material) => material.color),
-      borderColor: materials.map((material) => material.color),
+      data: materials.value.map((material) => material.percent),
+      backgroundColor: materials.value.map((material) => material.color),
+      borderColor: materials.value.map((material) => material.color),
       borderWidth: 0,
       hoverOffset: 0,
-      offset: materials.map((_, index) =>
+      offset: materials.value.map((_, index) =>
         selectedIndex.value === index ? SELECTED_SLICE_OFFSET : 0
       )
     }
@@ -119,139 +163,12 @@ const chartOptions = computed<ChartOptions<'doughnut'>>(() => ({
   }
 }))
 
-const dates = ['1 مهر', '2 مهر', '3 مهر', '4 مهر', '5 مهر', '6 مهر', '7 مهر']
-const weights = [1800, 2400, 1900, 1300, 2400, 1900, 2800, 2000, 3000, 2100, 3000, 3200, 2900, 3200]
-
-const progressBars = [
-  { value: 92, percent: 92, color: '#0f9f8f', vehicle: 'TR-08' },
-  { value: 80, percent: 80, color: '#0f9f8f', vehicle: 'TR-12' },
-  { value: 72, percent: 72, color: '#14b8a6', vehicle: 'TR-03' },
-  { value: 60, percent: 60, color: '#3b82f6', vehicle: 'TR-15' },
-  { value: 40, percent: 40, color: '#3b82f6', vehicle: 'TR-02' },
-  { value: 36, percent: 36, color: '#3b82f6', vehicle: 'TR-11' }
-]
-
-const capacityBars = [
-  { label: 'ناوگان', percent: 86, color: '#a855f7' },
-  { label: 'TR-03', percent: 78, color: '#f59e0b' },
-  { label: 'TR-12', percent: 86, color: '#3b82f6' },
-  { label: 'TR-06', percent: 92, color: '#0f9f8f' }
-]
-
-const heatmapColors = computed<Record<'W' | 'X' | 'Y' | 'Z', string>>(() => {
-  const isDarkMode = theme.value === 'dark'
-  if (isDarkMode) {
-    return {
-      W: '#14532d',
-      X: '#166534',
-      Y: '#15803d',
-      Z: '#166534'
-    }
-  }
-  return {
-    W: '#dcfce7',
-    X: '#86efac',
-    Y: '#14b8a6',
-    Z: '#166534'
-  }
-})
-
-const heatmapTimeHeaders = ['00-03', '03-06', '06-09', '09-12', '12-15', '15-18', '18-21', '21-24']
-
-const heatmapDays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']
-
-const heatmapData = [
-  ['W', 'W', 'X', 'Y', 'Z', 'Y', 'X', 'W'],     // شنبه
-  ['W', 'X', 'Y', 'Z', 'Z', 'Y', 'X', 'W'],     // یکشنبه
-  ['W', 'X', 'Y', 'Z', 'Y', 'Y', 'X', 'W'],     // دوشنبه
-  ['W', 'W', 'X', 'Y', 'Z', 'Z', 'Y', 'X'],     // سه شنبه
-  ['W', 'W', 'X', 'Y', 'Z', 'Y', 'X', 'W'],     // چهارشنبه
-  ['W', 'W', 'X', 'X', 'Y', 'Y', 'X', 'W'],     // پنجشنبه
-  ['W', 'W', 'X', 'Y', 'Z', 'Y', 'X', 'W']      // جمعه
-]
-
-const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']
-
-const stackedBarData = computed<ChartData<'bar'>>(() => ({
-  labels: days,
-  datasets: [
-    {
-      label: 'زغال سنگ',
-      data: [100, 100, 70, 80, 60, 90, 80],
-      backgroundColor: '#0f9f8f',
-      borderRadius: { topLeft: 4, topRight: 4 },
-      borderSkipped: false
-    },
-    {
-      label: 'سنگ آهن',
-      data: [60, 25, 40, 45, 60, 50, 60],
-      backgroundColor: '#3b82f6',
-      borderRadius: 0,
-      borderSkipped: false
-    },
-    {
-      label: 'سنگ آهک',
-      data: [40, 25, 40, 45, 30, 40, 30],
-      backgroundColor: '#f59e0b',
-      borderRadius: { topLeft: 4, topRight: 4 },
-      borderSkipped: false
-    }
-  ]
-}))
-
-const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
-  const isDarkMode = theme.value === 'dark'
-  const gridColor = isDarkMode ? '#1e293b' : '#f3f4f6'
-  const borderColor = isDarkMode ? '#334155' : '#e5e7eb'
-  const tickColor = isDarkMode ? '#94a3b8' : '#6b7280'
-  const tooltipBg = isDarkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)'
-  
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        enabled: true,
-        backgroundColor: tooltipBg,
-        titleColor: '#ffffff',
-        bodyColor: '#ffffff',
-        padding: 10,
-        cornerRadius: 6,
-        displayColors: true,
-        callbacks: {
-          label: (context) => `${context.dataset.label}: ${context.raw} سرویس`
-        }
-      }
-    },
-    scales: {
-      x: {
-        stacked: true,
-        grid: { display: false },
-        ticks: { color: tickColor, font: { size: 11 }, padding: 8 },
-        border: { display: true, color: borderColor }
-      },
-      y: {
-        stacked: true,
-        min: 0,
-        max: 300,
-        grid: { color: gridColor },
-        ticks: {
-          stepSize: 100,
-          callback: (value) => value.toString(),
-          color: tickColor,
-          font: { size: 11 },
-          padding: 8
-        },
-        border: { display: true, color: borderColor }
-      }
-    }
-  }
-})
-
 const lineChartData = computed<ChartData<'line'>>(() => {
+  if (!lineChart.value) {
+    return { datasets: [] }
+  }
   const seriesOffset = 0.15
-  const data = weights.map((weight, i) => ({
+  const data = lineChart.value.weights.map((weight, i) => ({
     x: i / 2 - seriesOffset,
     y: weight
   }))
@@ -281,7 +198,8 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
   const borderColor = isDarkMode ? '#334155' : '#e5e7eb'
   const tickColor = isDarkMode ? '#94a3b8' : '#6b7280'
   const tooltipBg = isDarkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)'
-  
+  const dates = lineChart.value?.dates ?? []
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -371,12 +289,92 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
     }
   }
 })
+
+const heatmapColors = computed<Record<'W' | 'X' | 'Y' | 'Z', string>>(() => {
+  if (!heatmap.value) {
+    return { W: '', X: '', Y: '', Z: '' }
+  }
+  const isDarkMode = theme.value === 'dark'
+  const colors = isDarkMode ? heatmap.value.colors.dark : heatmap.value.colors.light
+  return {
+    W: colors.W ?? '#dcfce7',
+    X: colors.X ?? '#86efac',
+    Y: colors.Y ?? '#14b8a6',
+    Z: colors.Z ?? '#166534'
+  }
+})
+
+const stackedBarData = computed<ChartData<'bar'>>(() => {
+  if (!stackedBar.value) {
+    return { labels: [], datasets: [] }
+  }
+  return {
+    labels: stackedBar.value.days,
+    datasets: stackedBar.value.datasets.map((ds) => ({
+      label: ds.label,
+      data: ds.data,
+      backgroundColor: ds.backgroundColor,
+      borderRadius: { topLeft: 4, topRight: 4 },
+      borderSkipped: false
+    }))
+  }
+})
+
+const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
+  const isDarkMode = theme.value === 'dark'
+  const gridColor = isDarkMode ? '#1e293b' : '#f3f4f6'
+  const borderColor = isDarkMode ? '#334155' : '#e5e7eb'
+  const tickColor = isDarkMode ? '#94a3b8' : '#6b7280'
+  const tooltipBg = isDarkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)'
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        backgroundColor: tooltipBg,
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        padding: 10,
+        cornerRadius: 6,
+        displayColors: true,
+        callbacks: {
+          label: (context) => `${context.dataset.label}: ${context.raw} سرویس`
+        }
+      }
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false },
+        ticks: { color: tickColor, font: { size: 11 }, padding: 8 },
+        border: { display: true, color: borderColor }
+      },
+      y: {
+        stacked: true,
+        min: 0,
+        max: 300,
+        grid: { color: gridColor },
+        ticks: {
+          stepSize: 100,
+          callback: (value) => value.toString(),
+          color: tickColor,
+          font: { size: 11 },
+          padding: 8
+        },
+        border: { display: true, color: borderColor }
+      }
+    }
+  }
+})
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col bg-primary">
-    <header class=" relative bg-secondary border-b border-primary shadow-sm transition-colors duration-300">
-      <nav class=" mx-auto h-17 flex max-w-7xl items-center justify-between gap-4 py-3 sm:px-6 lg:px-8 w-full">
+    <header class="relative bg-secondary border-b border-primary shadow-sm transition-colors duration-300">
+      <nav class="mx-auto h-17 flex max-w-7xl items-center justify-between gap-4 py-3 sm:px-6 lg:px-8 w-full">
         <!-- Theme Toggle - Upper Left -->
         <button
           @click="toggleTheme"
@@ -402,16 +400,16 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
               <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500">
                 <Circle class="h-4 w-4 text-white" />
               </div>
-              <div class="min-w-0 w-full sm:w-[70%] mr-30  sm:mr-[60px] lg:mr-[120px]">
+              <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">بهره برداری از ظرفیت</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">86%</span>
+                  <span class="text-2xl font-bold text-primary">{{ statistics?.capacityUtilization.value ?? '86%' }}</span>
                   <span class="text-sm text-muted">میانگین</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-amber-500 dark:text-amber-400">1/34</span> نسبت به دوره قبل
+              <span class="font-medium text-amber-500 dark:text-amber-400">{{ statistics?.capacityUtilization.trend }}</span> {{ statistics?.capacityUtilization.trendLabel }}
             </p>
           </div>
 
@@ -421,16 +419,16 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
               <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-600">
                 <Diamond class="h-4 w-4 text-white" />
               </div>
-              <div class="min-w-0 w-full sm:w-[70%] mr-30  sm:mr-[60px] lg:mr-[120px]">
+              <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">میانگین وزن هر سرویس</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">9/98</span>
-                  <span class="text-sm text-muted">تن</span>
+                  <span class="text-2xl font-bold text-primary">{{ statistics?.avgWeightPerService.value }}</span>
+                  <span class="text-sm text-muted">{{ statistics?.avgWeightPerService.unit }}</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-green-600 dark:text-green-400">افزایش 2/11</span> نسبت به دوره قبل
+              <span class="font-medium text-green-600 dark:text-green-400">{{ statistics?.avgWeightPerService.trend }}</span> {{ statistics?.avgWeightPerService.trendLabel }}
             </p>
           </div>
 
@@ -440,16 +438,16 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
               <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600">
                 <ArrowLeftRight class="h-4 w-4 text-white" />
               </div>
-              <div class="min-w-0 w-full sm:w-[70%] mr-30  sm:mr-[60px] lg:mr-[120px]">
+              <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">تعداد سرویس حمل</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">1286</span>
-                  <span class="text-sm text-muted">سرویس</span>
+                  <span class="text-2xl font-bold text-primary">{{ statistics?.totalServices.value }}</span>
+                  <span class="text-sm text-muted">{{ statistics?.totalServices.unit }}</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-green-600 dark:text-green-400">افزایش 5/24</span> نسبت به دوره قبل
+              <span class="font-medium text-green-600 dark:text-green-400">{{ statistics?.totalServices.trend }}</span> {{ statistics?.totalServices.trendLabel }}
             </p>
           </div>
 
@@ -459,16 +457,16 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
               <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-600">
                 <ArrowUpRight class="h-4 w-4 text-white" />
               </div>
-              <div class="min-w-0 w-full sm:w-[70%] mr-30  sm:mr-[60px] lg:mr-[120px]">
+              <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">مجموع بار حمل شده</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">12840</span>
-                  <span class="text-sm text-muted">تن</span>
+                  <span class="text-2xl font-bold text-primary">{{ statistics?.totalWeightTransported.value }}</span>
+                  <span class="text-sm text-muted">{{ statistics?.totalWeightTransported.unit }}</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-green-600 dark:text-green-400">افزایش 8/24</span> نسبت به دوره قبل
+              <span class="font-medium text-green-600 dark:text-green-400">{{ statistics?.totalWeightTransported.trend }}</span> {{ statistics?.totalWeightTransported.trendLabel }}
             </p>
           </div>
         </div>
@@ -562,12 +560,11 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
           </div>
         </div>
 
-   
- 
+    
 
       </div>
 
-     
+      
 <div class="w-full px-4 sm:px-6 lg:px-10 overflow-x-hidden">
         <div class="border border-primary bg-card w-full lg:max-w-[1830px] h-70 mt-5 rounded-xl transition-colors duration-300">
           <h3 class="mt-3 mr-3 font-bold text-primary">نسبت وزن بار به ظرفیت تراک</h3>
@@ -585,7 +582,7 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
       </div>
 
 
-      
+       
 <div class="w-full px-4 sm:px-6 lg:px-10 overflow-x-hidden">
         <div class="border border-primary bg-card w-full lg:max-w-[1830px] h-105 mt-5 rounded-xl transition-colors duration-300">
           <h3 class="mt-3 mr-3 font-bold text-primary">شدت بارگیری بر حسب ساعت و روز هفته</h3>
@@ -596,13 +593,13 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
               <thead>
                 <tr class="text-right">
                   <th class="p-2 font-medium text-muted">بازه زمانی</th>
-                  <th class="p-2 font-medium text-muted" v-for="(header, i) in heatmapTimeHeaders" :key="i">{{ header }}</th>
+                  <th class="p-2 font-medium text-muted" v-for="(header, i) in heatmap?.timeHeaders" :key="i">{{ header }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr class="text-right" v-for="(day, rowIndex) in heatmapDays" :key="rowIndex">
+                <tr class="text-right" v-for="(day, rowIndex) in heatmap?.days" :key="rowIndex">
                   <td class="p-2 font-medium text-secondary whitespace-nowrap">{{ day }}</td>
-                  <td class="p-1.5 mr-3 rounded-sm border border-primary/50" v-for="(cell, colIndex) in heatmapData[rowIndex]" :key="colIndex" :style="{ backgroundColor: heatmapColors[cell as keyof typeof heatmapColors] }"></td>
+                  <td class="p-1.5 mr-3 rounded-sm border border-primary/50" v-for="(cell, colIndex) in heatmap?.data[rowIndex]" :key="colIndex" :style="{ backgroundColor: heatmapColors[cell as keyof typeof heatmapColors] }"></td>
                 </tr>
               </tbody>
             </table>
@@ -610,16 +607,40 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
         </div>
       </div>
 
+    
+
+   
+  
 
    
  
 
-     
+   
+ 
 
+   
+ 
 
+   
+ 
 
+   
+ 
 
+   
+ 
 
+   
+ 
+
+   
+ 
+
+   
+ 
+
+   
+ 
 
 
     </main>
