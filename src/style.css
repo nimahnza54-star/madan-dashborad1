@@ -1,0 +1,135 @@
+@import "tailwindcss";
+@import "@fontsource/vazirmatn";
+
+* {
+  font-family: "Vazirmatn", "Vazir", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  font-family: "Vazirmatn", "Vazir", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  font-family: "Vazirmatn", "Vazir", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
+}
+
+@theme {
+  --font-vazir: "Vazirmatn", "Vazir", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  :root {
+    --color-bg-primary: #f8fafc;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f1f5f9;
+    --color-bg-card: #ffffff;
+    --color-bg-elevated: #f8fafc;
+    
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-text-inverse: #f8fafc;
+    
+    --color-border-primary: #e2e8f0;
+    --color-border-secondary: #cbd5e1;
+    --color-border-focus: #0f9f8f;
+    
+    --color-primary: #0f9f8f;
+    --color-primary-hover: #0d9488;
+    --color-primary-light: #ccfbf1;
+    
+    --color-secondary: #3b82f6;
+    --color-secondary-hover: #2563eb;
+    --color-secondary-light: #dbeafe;
+    
+    --color-amber: #f59e0b;
+    --color-amber-hover: #d97706;
+    --color-amber-light: #fef3c7;
+    
+    --color-purple: #a855f7;
+    --color-purple-hover: #9333ea;
+    --color-purple-light: #f3e8ff;
+    
+    --color-green: #22c55e;
+    --color-green-hover: #16a34a;
+    --color-green-light: #dcfce7;
+    
+    --color-red: #ef4444;
+    --color-red-hover: #dc2626;
+    --color-red-light: #fee2e2;
+    
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  
+  .dark {
+    --color-bg-primary: #0b1120;
+    --color-bg-secondary: #111c2e;
+    --color-bg-tertiary: #162235;
+    --color-bg-card: #111c2e;
+    --color-bg-elevated: #162235;
+    
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #94a3b8;
+    --color-text-inverse: #0b1120;
+    
+    --color-border-primary: #1e293b;
+    --color-border-secondary: #334155;
+    --color-border-focus: #14b8a6;
+    
+    --color-primary: #14b8a6;
+    --color-primary-hover: #0d9488;
+    --color-primary-light: #134e4a;
+    
+    --color-secondary: #60a5fa;
+    --color-secondary-hover: #3b82f6;
+    --color-secondary-light: #1e3a5f;
+    
+    --color-amber: #fbbf24;
+    --color-amber-hover: #f59e0b;
+    --color-amber-light: #3d2b05;
+    
+    --color-purple: #c084fc;
+    --color-purple-hover: #a855f7;
+    --color-purple-light: #3b1f5c;
+    
+    --color-green: #4ade80;
+    --color-green-hover: #22c55e;
+    --color-green-light: #14532d;
+    
+    --color-red: #f87171;
+    --color-red-hover: #ef4444;
+    --color-red-light: #450a0a;
+    
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  }
+}
+
+@layer utilities {
+  .bg-primary { background-color: var(--color-bg-primary); }
+  .bg-secondary { background-color: var(--color-bg-secondary); }
+  .bg-tertiary { background-color: var(--color-bg-tertiary); }
+  .bg-card { background-color: var(--color-bg-card); }
+  .bg-elevated { background-color: var(--color-bg-elevated); }
+  
+  .text-primary { color: var(--color-text-primary); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-muted { color: var(--color-text-muted); }
+  .text-inverse { color: var(--color-text-inverse); }
+  
+  .border-primary { border-color: var(--color-border-primary); }
+  .border-secondary { border-color: var(--color-border-secondary); }
+  .border-focus { border-color: var(--color-border-focus); }
+  
+  .shadow-sm-custom { box-shadow: var(--shadow-sm); }
+  .shadow-md-custom { box-shadow: var(--shadow-md); }
+  .shadow-lg-custom { box-shadow: var(--shadow-lg); }
+}
