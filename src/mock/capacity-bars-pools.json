@@ -1,0 +1,34 @@
+{
+  "capacityBarsPool": [
+    [
+      { "label": "ناوگان", "percent": 86, "color": "#a855f7" },
+      { "label": "TR-03", "percent": 78, "color": "#f59e0b" },
+      { "label": "TR-12", "percent": 86, "color": "#3b82f6" },
+      { "label": "TR-06", "percent": 92, "color": "#0f9f8f" }
+    ],
+    [
+      { "label": "ناوگان", "percent": 82, "color": "#a855f7" },
+      { "label": "TR-03", "percent": 75, "color": "#f59e0b" },
+      { "label": "TR-12", "percent": 88, "color": "#3b82f6" },
+      { "label": "TR-06", "percent": 90, "color": "#0f9f8f" }
+    ],
+    [
+      { "label": "ناوگان", "percent": 90, "color": "#a855f7" },
+      { "label": "TR-03", "percent": 82, "color": "#f59e0b" },
+      { "label": "TR-12", "percent": 84, "color": "#3b82f6" },
+      { "label": "TR-06", "percent": 95, "color": "#0f9f8f" }
+    ],
+    [
+      { "label": "ناوگان", "percent": 78, "color": "#a855f7" },
+      { "label": "TR-03", "percent": 72, "color": "#f59e0b" },
+      { "label": "TR-12", "percent": 80, "color": "#3b82f6" },
+      { "label": "TR-06", "percent": 88, "color": "#0f9f8f" }
+    ],
+    [
+      { "label": "ناوگان", "percent": 88, "color": "#a855f7" },
+      { "label": "TR-03", "percent": 79, "color": "#f59e0b" },
+      { "label": "TR-12", "percent": 87, "color": "#3b82f6" },
+      { "label": "TR-06", "percent": 93, "color": "#0f9f8f" }
+    ]
+  ]
+}

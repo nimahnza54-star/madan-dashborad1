@@ -7,7 +7,8 @@ import {
   ArrowLeftRight,
   ArrowUpRight,
   Sun,
-  Moon
+  Moon,
+  Check
 } from 'lucide-vue-next'
 import { Doughnut, Line, Bar } from 'vue-chartjs'
 import {
@@ -23,50 +24,46 @@ import {
   type ChartOptions
 } from 'chart.js'
 import { useTheme } from '@/composables/useTheme'
-import api, {
-  type Material,
-  type Statistics,
-  type LineChartData,
-  type ProgressBar,
-  type CapacityBar,
-  type HeatmapData,
-  type StackedBarData
-} from '@/services/api'
+import { useDashboardData } from '@/composables/useDashboardData'
 
 ChartJS.register(ArcElement, Tooltip, LineElement, PointElement, LinearScale, CategoryScale, BarElement)
 
 const { theme, toggleTheme, isDark } = useTheme()
 
-const materials = ref<Material[]>([])
-const statistics = ref<Statistics | null>(null)
-const lineChart = ref<LineChartData | null>(null)
-const progressBars = ref<ProgressBar[]>([])
-const capacityBars = ref<CapacityBar[]>([])
-const heatmap = ref<HeatmapData | null>(null)
-const stackedBar = ref<StackedBarData | null>(null)
-
-const loading = ref(true)
-const error = ref<string | null>(null)
+const {
+  selectedMaterials,
+  materialsWithPercentages,
+  selectedStatistics,
+  selectedProgressBars,
+  selectedCapacityBars,
+  selectedLineChart,
+  selectedStackedBar,
+  totalQuantity,
+  chartData,
+  initializeDashboardData
+} = useDashboardData()
 
 const SELECTION_DURATION_MS = 8000
 const SELECTED_SLICE_OFFSET = 34
 
-const selectedIndex = ref<number | null>(null)
+const selectedIndices = ref<Set<number>>(new Set())
 let selectionTimer: ReturnType<typeof setTimeout> | null = null
 
-const TOTAL_THOUSAND_TONS = 12.8 / 0.42
-
-function formatTons(percent: number): string {
-  return (TOTAL_THOUSAND_TONS * (percent / 100)).toFixed(2)
+function formatTons(quantity: number): string {
+  return (quantity / 1000).toFixed(2)
 }
 
-function selectMaterial(index: number): void {
+function toggleMaterialSelection(index: number): void {
+  if (selectedIndices.value.has(index)) {
+    selectedIndices.value.delete(index)
+  } else {
+    selectedIndices.value.add(index)
+  }
   if (selectionTimer !== null) {
     clearTimeout(selectionTimer)
   }
-  selectedIndex.value = index
   selectionTimer = setTimeout(() => {
-    selectedIndex.value = null
+    selectedIndices.value.clear()
     selectionTimer = null
   }, SELECTION_DURATION_MS)
 }
@@ -76,64 +73,15 @@ function clearSelection(): void {
     clearTimeout(selectionTimer)
     selectionTimer = null
   }
-  selectedIndex.value = null
+  selectedIndices.value.clear()
+}
+
+function isSelected(index: number): boolean {
+  return selectedIndices.value.has(index)
 }
 
 onBeforeUnmount(clearSelection)
-
-async function fetchDashboardData(): Promise<void> {
-  loading.value = true
-  error.value = null
-  try {
-    const [
-      materialsRes,
-      statisticsRes,
-      lineChartRes,
-      progressBarsRes,
-      capacityBarsRes,
-      heatmapRes,
-      stackedBarRes
-    ] = await Promise.all([
-      api.getMaterials(),
-      api.getStatistics(),
-      api.getLineChart(),
-      api.getProgressBars(),
-      api.getCapacityBars(),
-      api.getHeatmap(),
-      api.getStackedBar()
-    ])
-    materials.value = materialsRes
-    statistics.value = statisticsRes
-    lineChart.value = lineChartRes
-    progressBars.value = progressBarsRes
-    capacityBars.value = capacityBarsRes
-    heatmap.value = heatmapRes
-    stackedBar.value = stackedBarRes
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load dashboard data'
-    console.error('Dashboard data fetch error:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(fetchDashboardData)
-
-const chartData = computed<ChartData<'doughnut'>>(() => ({
-  labels: materials.value.map((material) => material.name),
-  datasets: [
-    {
-      data: materials.value.map((material) => material.percent),
-      backgroundColor: materials.value.map((material) => material.color),
-      borderColor: materials.value.map((material) => material.color),
-      borderWidth: 0,
-      hoverOffset: 0,
-      offset: materials.value.map((_, index) =>
-        selectedIndex.value === index ? SELECTED_SLICE_OFFSET : 0
-      )
-    }
-  ]
-}))
+onMounted(initializeDashboardData)
 
 const chartOptions = computed<ChartOptions<'doughnut'>>(() => ({
   responsive: true,
@@ -147,7 +95,22 @@ const chartOptions = computed<ChartOptions<'doughnut'>>(() => ({
   },
   plugins: {
     legend: { display: false },
-    tooltip: { enabled: false }
+    tooltip: {
+      enabled: true,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: '#ffffff',
+      bodyColor: '#ffffff',
+      padding: 10,
+      cornerRadius: 6,
+      displayColors: true,
+      callbacks: {
+        label: (context) => {
+          const material = materialsWithPercentages.value[context.dataIndex]
+          if (!material) return ''
+          return `${material.name}: ${material.percentage.toFixed(2)}% (${formatTons(material.quantity)} هزار تن)`
+        }
+      }
+    }
   },
   onHover: (event, elements) => {
     const target = event.native?.target as HTMLElement | null
@@ -158,17 +121,37 @@ const chartOptions = computed<ChartOptions<'doughnut'>>(() => ({
   onClick: (_event, elements) => {
     const element = elements[0]
     if (element) {
-      selectMaterial(element.index)
+      toggleMaterialSelection(element.index)
     }
   }
 }))
 
+const filteredChartData = computed<ChartData<'doughnut'>>(() => {
+  if (selectedIndices.value.size === 0) {
+    return chartData.value
+  }
+  const indices = Array.from(selectedIndices.value).sort((a, b) => a - b)
+  return {
+    labels: indices.map((i) => materialsWithPercentages.value[i]?.name ?? ''),
+    datasets: [
+      {
+        data: indices.map((i) => materialsWithPercentages.value[i]?.percentage ?? 0),
+        backgroundColor: indices.map((i) => materialsWithPercentages.value[i]?.color ?? '#000'),
+        borderColor: indices.map((i) => materialsWithPercentages.value[i]?.color ?? '#000'),
+        borderWidth: 0,
+        hoverOffset: 0
+      }
+    ]
+  }
+})
+
 const lineChartData = computed<ChartData<'line'>>(() => {
-  if (!lineChart.value) {
+  const lineChart = selectedLineChart.value
+  if (!lineChart) {
     return { datasets: [] }
   }
   const seriesOffset = 0.15
-  const data = lineChart.value.weights.map((weight, i) => ({
+  const data = lineChart.weights.map((weight: number, i: number) => ({
     x: i / 2 - seriesOffset,
     y: weight
   }))
@@ -198,7 +181,8 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
   const borderColor = isDarkMode ? '#334155' : '#e5e7eb'
   const tickColor = isDarkMode ? '#94a3b8' : '#6b7280'
   const tooltipBg = isDarkMode ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)'
-  const dates = lineChart.value?.dates ?? []
+  const lineChart = selectedLineChart.value
+  const dates = lineChart?.dates ?? []
 
   return {
     responsive: true,
@@ -290,27 +274,14 @@ const lineChartOptions = computed<ChartOptions<'line'>>(() => {
   }
 })
 
-const heatmapColors = computed<Record<'W' | 'X' | 'Y' | 'Z', string>>(() => {
-  if (!heatmap.value) {
-    return { W: '', X: '', Y: '', Z: '' }
-  }
-  const isDarkMode = theme.value === 'dark'
-  const colors = isDarkMode ? heatmap.value.colors.dark : heatmap.value.colors.light
-  return {
-    W: colors.W ?? '#dcfce7',
-    X: colors.X ?? '#86efac',
-    Y: colors.Y ?? '#14b8a6',
-    Z: colors.Z ?? '#166534'
-  }
-})
-
 const stackedBarData = computed<ChartData<'bar'>>(() => {
-  if (!stackedBar.value) {
+  const stackedBar = selectedStackedBar.value
+  if (!stackedBar) {
     return { labels: [], datasets: [] }
   }
   return {
-    labels: stackedBar.value.days,
-    datasets: stackedBar.value.datasets.map((ds) => ({
+    labels: stackedBar.days,
+    datasets: stackedBar.datasets.map((ds: any) => ({
       label: ds.label,
       data: ds.data,
       backgroundColor: ds.backgroundColor,
@@ -369,6 +340,38 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
     }
   }
 })
+
+const heatmapColors = computed<Record<'W' | 'X' | 'Y' | 'Z', string>>(() => {
+  const isDarkMode = theme.value === 'dark'
+  if (isDarkMode) {
+    return {
+      W: '#14532d',
+      X: '#166534',
+      Y: '#15803d',
+      Z: '#166534'
+    }
+  }
+  return {
+    W: '#dcfce7',
+    X: '#86efac',
+    Y: '#14b8a6',
+    Z: '#166534'
+  }
+})
+
+const heatmapTimeHeaders = ['00-03', '03-06', '06-09', '09-12', '12-15', '15-18', '18-21', '21-24']
+
+const heatmapDays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']
+
+const heatmapData = [
+  ['W', 'W', 'X', 'Y', 'Z', 'Y', 'X', 'W'],
+  ['W', 'X', 'Y', 'Z', 'Z', 'Y', 'X', 'W'],
+  ['W', 'X', 'Y', 'Z', 'Y', 'Y', 'X', 'W'],
+  ['W', 'W', 'X', 'Y', 'Z', 'Z', 'Y', 'X'],
+  ['W', 'W', 'X', 'Y', 'Z', 'Y', 'X', 'W'],
+  ['W', 'W', 'X', 'X', 'Y', 'Y', 'X', 'W'],
+  ['W', 'W', 'X', 'Y', 'Z', 'Y', 'X', 'W']
+]
 </script>
 
 <template>
@@ -403,13 +406,13 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
               <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">بهره برداری از ظرفیت</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">{{ statistics?.capacityUtilization.value ?? '86%' }}</span>
+                  <span class="text-2xl font-bold text-primary">{{ selectedStatistics?.capacityUtilization?.value ?? '86%' }}</span>
                   <span class="text-sm text-muted">میانگین</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-amber-500 dark:text-amber-400">{{ statistics?.capacityUtilization.trend }}</span> {{ statistics?.capacityUtilization.trendLabel }}
+              <span class="font-medium text-amber-500 dark:text-amber-400">{{ selectedStatistics?.capacityUtilization?.trend }}</span> {{ selectedStatistics?.capacityUtilization?.trendLabel }}
             </p>
           </div>
 
@@ -422,13 +425,13 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
               <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">میانگین وزن هر سرویس</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">{{ statistics?.avgWeightPerService.value }}</span>
-                  <span class="text-sm text-muted">{{ statistics?.avgWeightPerService.unit }}</span>
+                  <span class="text-2xl font-bold text-primary">{{ selectedStatistics?.avgWeightPerService?.value }}</span>
+                  <span class="text-sm text-muted">{{ selectedStatistics?.avgWeightPerService?.unit }}</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-green-600 dark:text-green-400">{{ statistics?.avgWeightPerService.trend }}</span> {{ statistics?.avgWeightPerService.trendLabel }}
+              <span class="font-medium text-green-600 dark:text-green-400">{{ selectedStatistics?.avgWeightPerService?.trend }}</span> {{ selectedStatistics?.avgWeightPerService?.trendLabel }}
             </p>
           </div>
 
@@ -441,13 +444,13 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
               <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">تعداد سرویس حمل</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">{{ statistics?.totalServices.value }}</span>
-                  <span class="text-sm text-muted">{{ statistics?.totalServices.unit }}</span>
+                  <span class="text-2xl font-bold text-primary">{{ selectedStatistics?.totalServices?.value }}</span>
+                  <span class="text-sm text-muted">{{ selectedStatistics?.totalServices?.unit }}</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-green-600 dark:text-green-400">{{ statistics?.totalServices.trend }}</span> {{ statistics?.totalServices.trendLabel }}
+              <span class="font-medium text-green-600 dark:text-green-400">{{ selectedStatistics?.totalServices?.trend }}</span> {{ selectedStatistics?.totalServices?.trendLabel }}
             </p>
           </div>
 
@@ -460,13 +463,13 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
               <div class="min-w-0 w-full sm:w-[70%] mr-30 sm:mr-[60px] lg:mr-[120px]">
                 <p class="text-sm text-muted">مجموع بار حمل شده</p>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="text-2xl font-bold text-primary">{{ statistics?.totalWeightTransported.value }}</span>
-                  <span class="text-sm text-muted">{{ statistics?.totalWeightTransported.unit }}</span>
+                  <span class="text-2xl font-bold text-primary">{{ selectedStatistics?.totalWeightTransported?.value }}</span>
+                  <span class="text-sm text-muted">{{ selectedStatistics?.totalWeightTransported?.unit }}</span>
                 </div>
               </div>
             </div>
             <p class="text-xs text-muted">
-              <span class="font-medium text-green-600 dark:text-green-400">{{ statistics?.totalWeightTransported.trend }}</span> {{ statistics?.totalWeightTransported.trendLabel }}
+              <span class="font-medium text-green-600 dark:text-green-400">{{ selectedStatistics?.totalWeightTransported?.trend }}</span> {{ selectedStatistics?.totalWeightTransported?.trendLabel }}
             </p>
           </div>
         </div>
@@ -481,31 +484,32 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
             <!-- Material breakdown list (right side in RTL) -->
             <div class="flex min-w-0 flex-1 flex-col gap-1.5">
               <button
-                v-for="(material, index) in materials"
+                v-for="(material, index) in materialsWithPercentages"
                 :key="material.name"
                 type="button"
                 class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-right transition-colors duration-200 hover:bg-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                :class="{ 'bg-tertiary': selectedIndex === index }"
-                :aria-pressed="selectedIndex === index"
-                @click="selectMaterial(index)"
+                :class="{ 'bg-tertiary': isSelected(index) }"
+                :aria-pressed="isSelected(index)"
+                @click="toggleMaterialSelection(index)"
               >
                 <span class="flex min-w-0 flex-1 items-center gap-2">
-                  <span class="flex-shrink-0 text-sm font-semibold text-primary tabular-nums" dir="ltr">{{ material.percent }}%</span>
+                  <span class="flex-shrink-0 text-sm font-semibold text-primary tabular-nums" dir="ltr">{{ material.percentage.toFixed(2) }}%</span>
                   <span class="truncate text-sm text-secondary">{{ material.name }}</span>
                 </span>
                 <span class="flex flex-shrink-0 items-center gap-2">
                   <span
                     class="overflow-hidden whitespace-nowrap text-[11px] text-muted transition-all duration-300"
-                    :class="selectedIndex === index ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0'"
-                  >{{ formatTons(material.percent) }} هزار تن</span>
+                    :class="isSelected(index) ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0'"
+                  >{{ formatTons(material.quantity) }} هزار تن</span>
                   <span class="h-5 w-5 rounded-sm" :class="material.colorClass"></span>
+                  <Check v-if="isSelected(index)" class="h-4 w-4 text-primary" aria-hidden="true" />
                 </span>
               </button>
             </div>
 
             <!-- Donut chart (left side in RTL) -->
             <div class="relative h-44 w-44 flex-shrink-0 self-center md:self-auto lg:h-48 lg:w-48">
-              <Doughnut :data="chartData" :options="chartOptions" :key="theme" />
+              <Doughnut :data="filteredChartData" :options="chartOptions" :key="theme" />
             </div>
           </div>
         </div>
@@ -527,7 +531,7 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
             <h3 class="mt-3 mr-3 font-bold text-primary">سرویس به تفکیک ماشین</h3>
             <p class="mt-1 mr-3 text-xs text-muted">مقایسه تعداد سرویس در بازه انتخاب شده</p>
 <div class="mt-10 mr-3 ml-3 flex flex-col justify-between gap-3">
-              <div class="flex items-center gap-3" v-for="(bar, index) in progressBars" :key="index">
+              <div class="flex items-center gap-3" v-for="(bar, index) in selectedProgressBars" :key="index">
                 <span class="text-sm font-semibold text-primary w-12 text-right">{{ bar.value }}</span>
                 <div class="flex-1 h-2.5 bg-tertiary rounded-full overflow-hidden">
                   <div class="h-full rounded-full" :style="{ width: bar.percent + '%', backgroundColor: bar.color }"></div>
@@ -560,17 +564,18 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
           </div>
         </div>
 
-    
+   
+ 
 
       </div>
 
-      
+     
 <div class="w-full px-4 sm:px-6 lg:px-10 overflow-x-hidden">
         <div class="border border-primary bg-card w-full lg:max-w-[1830px] h-70 mt-5 rounded-xl transition-colors duration-300">
           <h3 class="mt-3 mr-3 font-bold text-primary">نسبت وزن بار به ظرفیت تراک</h3>
           <p class="mt-1 mr-3 text-xs text-muted">میانگین نسبت وزن بارگیری به ظرفیت مجاز هر سرویس</p>
           <div class="mt-12 mr-3 ml-3 flex flex-col gap-4">
-            <div class="flex items-center gap-3" v-for="(bar, index) in capacityBars" :key="index">
+            <div class="flex items-center gap-3" v-for="(bar, index) in selectedCapacityBars" :key="index">
               <span class="text-sm text-secondary shrink-0">{{ bar.label }}</span>
               <div class="flex-1 h-2.5 bg-tertiary rounded-full overflow-hidden">
                 <div class="h-full rounded-full" :style="{ width: bar.percent + '%', backgroundColor: bar.color }"></div>
@@ -582,24 +587,24 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
       </div>
 
 
-       
+      
 <div class="w-full px-4 sm:px-6 lg:px-10 overflow-x-hidden">
         <div class="border border-primary bg-card w-full lg:max-w-[1830px] h-105 mt-5 rounded-xl transition-colors duration-300">
           <h3 class="mt-3 mr-3 font-bold text-primary">شدت بارگیری بر حسب ساعت و روز هفته</h3>
           <p class="mt-1 mr-3 text-xs text-muted">تراکم تعداد بارگیری ها برای شناسایی ساعات اوج</p>
           <p class="mt-1 mr-3 text-xs text-muted">30 روز گذشته</p>
           <div class="mt-3 mr-3 ml-3 overflow-x-auto">
-            <table class="w-full min-w-max text-sm">
+            <table class="w-full min-w-max text-sm border-separate" style="border-spacing: 2px;">
               <thead>
                 <tr class="text-right">
                   <th class="p-2 font-medium text-muted">بازه زمانی</th>
-                  <th class="p-2 font-medium text-muted" v-for="(header, i) in heatmap?.timeHeaders" :key="i">{{ header }}</th>
+                  <th class="p-2 font-medium text-muted" v-for="(header, i) in heatmapTimeHeaders" :key="i">{{ header }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr class="text-right" v-for="(day, rowIndex) in heatmap?.days" :key="rowIndex">
+                <tr class="text-right" v-for="(day, rowIndex) in heatmapDays" :key="rowIndex">
                   <td class="p-2 font-medium text-secondary whitespace-nowrap">{{ day }}</td>
-                  <td class="p-1.5 mr-3 rounded-sm border border-primary/50" v-for="(cell, colIndex) in heatmap?.data[rowIndex]" :key="colIndex" :style="{ backgroundColor: heatmapColors[cell as keyof typeof heatmapColors] }"></td>
+                  <td class="p-1.5 mr-3 rounded-sm" v-for="(cell, colIndex) in heatmapData[rowIndex]" :key="colIndex" :style="{ backgroundColor: heatmapColors[cell as keyof typeof heatmapColors] }"></td>
                 </tr>
               </tbody>
             </table>
@@ -607,40 +612,16 @@ const stackedBarOptions = computed<ChartOptions<'bar'>>(() => {
         </div>
       </div>
 
-    
-
-   
-  
 
    
  
 
-   
- 
+     
 
-   
- 
 
-   
- 
 
-   
- 
 
-   
- 
 
-   
- 
-
-   
- 
-
-   
- 
-
-   
- 
 
 
     </main>

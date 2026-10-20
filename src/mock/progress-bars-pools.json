@@ -1,0 +1,44 @@
+{
+  "progressBarsPool": [
+    [
+      { "value": 92, "percent": 92, "color": "#0f9f8f", "vehicle": "TR-08" },
+      { "value": 80, "percent": 80, "color": "#0f9f8f", "vehicle": "TR-12" },
+      { "value": 72, "percent": 72, "color": "#14b8a6", "vehicle": "TR-03" },
+      { "value": 60, "percent": 60, "color": "#3b82f6", "vehicle": "TR-15" },
+      { "value": 40, "percent": 40, "color": "#3b82f6", "vehicle": "TR-02" },
+      { "value": 36, "percent": 36, "color": "#3b82f6", "vehicle": "TR-11" }
+    ],
+    [
+      { "value": 88, "percent": 88, "color": "#0f9f8f", "vehicle": "TR-05" },
+      { "value": 85, "percent": 85, "color": "#0f9f8f", "vehicle": "TR-09" },
+      { "value": 78, "percent": 78, "color": "#14b8a6", "vehicle": "TR-01" },
+      { "value": 65, "percent": 65, "color": "#3b82f6", "vehicle": "TR-14" },
+      { "value": 52, "percent": 52, "color": "#3b82f6", "vehicle": "TR-07" },
+      { "value": 38, "percent": 38, "color": "#3b82f6", "vehicle": "TR-10" }
+    ],
+    [
+      { "value": 95, "percent": 95, "color": "#0f9f8f", "vehicle": "TR-04" },
+      { "value": 82, "percent": 82, "color": "#0f9f8f", "vehicle": "TR-13" },
+      { "value": 75, "percent": 75, "color": "#14b8a6", "vehicle": "TR-06" },
+      { "value": 58, "percent": 58, "color": "#3b82f6", "vehicle": "TR-16" },
+      { "value": 45, "percent": 45, "color": "#3b82f6", "vehicle": "TR-02" },
+      { "value": 33, "percent": 33, "color": "#3b82f6", "vehicle": "TR-11" }
+    ],
+    [
+      { "value": 90, "percent": 90, "color": "#0f9f8f", "vehicle": "TR-08" },
+      { "value": 78, "percent": 78, "color": "#0f9f8f", "vehicle": "TR-12" },
+      { "value": 70, "percent": 70, "color": "#14b8a6", "vehicle": "TR-03" },
+      { "value": 62, "percent": 62, "color": "#3b82f6", "vehicle": "TR-15" },
+      { "value": 42, "percent": 42, "color": "#3b82f6", "vehicle": "TR-02" },
+      { "value": 35, "percent": 35, "color": "#3b82f6", "vehicle": "TR-11" }
+    ],
+    [
+      { "value": 87, "percent": 87, "color": "#0f9f8f", "vehicle": "TR-05" },
+      { "value": 83, "percent": 83, "color": "#0f9f8f", "vehicle": "TR-09" },
+      { "value": 76, "percent": 76, "color": "#14b8a6", "vehicle": "TR-01" },
+      { "value": 68, "percent": 68, "color": "#3b82f6", "vehicle": "TR-14" },
+      { "value": 48, "percent": 48, "color": "#3b82f6", "vehicle": "TR-07" },
+      { "value": 30, "percent": 30, "color": "#3b82f6", "vehicle": "TR-10" }
+    ]
+  ]
+}
